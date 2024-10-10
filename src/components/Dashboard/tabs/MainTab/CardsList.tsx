@@ -27,7 +27,7 @@ export type CardsListProps = {
   cardSize?: CardSizes;
   cards: DashboardProps['cards'];
 
-  loadMoreCards: DashboardProps['loadMoreCards'];
+  loadMoreWalletCards: DashboardProps['loadMoreWalletCards'];
   openKYC: DashboardProps['openKYC'];
   verificationStatus?: DashboardProps['verificationStatus'];
 
@@ -39,7 +39,7 @@ const CardsList: FC<CardsListProps> = (props) => {
     cards,
     onCardClick,
 
-    loadMoreCards,
+    loadMoreWalletCards,
     openKYC,
     verificationStatus,
     className,
@@ -87,7 +87,7 @@ const CardsList: FC<CardsListProps> = (props) => {
 
   useEffect(() => {
     if (isEndCardsListVisible && isLoadMoreAvailible) {
-      loadMoreCards();
+      loadMoreWalletCards();
     }
   }, [isEndCardsListVisible]);
 

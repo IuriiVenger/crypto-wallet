@@ -5,11 +5,13 @@ import {
   AppAction,
   StoreDataWithStatus,
   StoreDataWithStatusAndMeta,
+  StoreDataWithStatusAndMetaRecordsWithNames,
   StoreOfframpCalcData,
   StoreOnrampCalcData,
   SupabasePaginationParams,
 } from '../types';
 
+import { fiat_accounts } from '@/api/fiat_accounts';
 import { issuing } from '@/api/issuing';
 import { orders } from '@/api/orders';
 import { API } from '@/api/types';
@@ -35,12 +37,15 @@ type FinanceState = {
   selectedChain: null | API.List.Chains;
   selectedCrypto: null | API.List.Crypto;
   selectedCard: StoreDataWithStatus<API.Cards.CardDetailItem | null>;
+  selectedCardTransactions: StoreDataWithStatusAndMeta<API.Cards.TransactionItem[] | null>;
   selectedFiat: null | API.List.Fiat;
+  selectedFiatAccount: StoreDataWithStatus<API.Wallets.FiatAccount | null>;
+  selectedFiatAccountCards: StoreDataWithStatusAndMeta<API.Cards.CardListItem[] | null>;
   selectedWallet: StoreDataWithStatus<API.Wallets.ExtendWallet | null>;
-  selectedWalletTransactions: StoreDataWithStatusAndMeta<API.WalletTransactions.Transaction[] | null> &
-    SupabasePaginationParams;
-  selectedCardTransactions: StoreDataWithStatusAndMeta<API.Cards.TransactionItem[] | null> & SupabasePaginationParams;
-  selectedWalletCards: StoreDataWithStatusAndMeta<API.Cards.CardListItem[] | null> & SupabasePaginationParams;
+  selectedWalletTransactions: StoreDataWithStatusAndMeta<API.WalletTransactions.Transaction[] | null>;
+  selectedWalletCards: StoreDataWithStatusAndMeta<API.Cards.CardListItem[] | null>;
+  selectedWalletFiatAccounts: StoreDataWithStatusAndMeta<API.Wallets.FiatAccount[] | null>;
+  selectedWalletFiatAccountsWithCards: StoreDataWithStatusAndMetaRecordsWithNames<API.Cards.CardListItem[] | null>;
   userWallets: API.Wallets.Wallet[];
 };
 
@@ -67,7 +72,17 @@ const initialState: FinanceState = {
   selectedChain: null,
   selectedCrypto: null,
   selectedFiat: null,
+  selectedFiatAccount: emptyStoreDataWithStatus,
+  selectedFiatAccountCards: {
+    ...emptyStoreDataWithStatus,
+    meta: cardInitialPaginationParams,
+  },
   selectedWallet: emptyStoreDataWithStatus,
+  selectedWalletFiatAccounts: {
+    ...emptyStoreDataWithStatus,
+    meta: defaultPaginationParams,
+  },
+  selectedWalletFiatAccountsWithCards: {},
   selectedCard: emptyStoreDataWithStatus,
   selectedCardTransactions: {
     ...emptyStoreDataWithStatus,
@@ -98,6 +113,108 @@ export const loadSelectedWallet = createAsyncThunk('finanse/selectedWallet', asy
 
   return data;
 });
+
+export const loadSelectedWalletFiatAccounts = createAsyncThunk(
+  'finanse/selectedWalletFiatAccounts',
+  async ({ wallet_uuid, limit, offset }: LoadWithLimit<{ wallet_uuid: string }>) => {
+    const requestData = {
+      wallet_uuid,
+      limit: limit || initialState.selectedWalletFiatAccounts.meta.limit,
+      offset: offset || initialState.selectedWalletFiatAccounts.meta.offset,
+    };
+
+    const { data } = await fiat_accounts.getAllByWalletUuid(
+      requestData.wallet_uuid,
+      requestData.limit,
+      requestData.offset,
+    );
+
+    return data;
+  },
+);
+
+export const loadMoreSelectedWalletFiatAccounts = createAsyncThunk(
+  'finanse/moreSelectedWalletFiatAccounts',
+  async (props: RequiredLoadWithLimit<{ wallet_uuid: string }> & SupabasePaginationParams['meta']) => {
+    const { wallet_uuid, limit, offset } = props;
+    const { data } = await fiat_accounts.getAllByWalletUuid(wallet_uuid, limit, offset);
+
+    return data;
+  },
+);
+
+export const loadSelectedFiatAccount = createAsyncThunk(
+  'finanse/selectedFiatAccount',
+  async (fiat_account_id: string) => {
+    const data = await fiat_accounts.getByUuid(fiat_account_id);
+
+    return data;
+  },
+);
+
+export const loadSelectedFiatAccountCards = createAsyncThunk(
+  'finanse/selectedFiatAccountCards',
+  async ({
+    wallet_uuid,
+    fiat_account_id,
+    limit,
+    offset,
+  }: LoadWithLimit<{ wallet_uuid: string; fiat_account_id: string }>) => {
+    const requestData = {
+      wallet_uuid,
+      fiat_account_id,
+      limit: limit || initialState.selectedFiatAccountCards.meta.limit,
+      offset: offset || initialState.selectedFiatAccountCards.meta.offset,
+    };
+
+    const { data } = await issuing.cards.getByFiatAccountAndWalletId(
+      requestData.wallet_uuid,
+      requestData.fiat_account_id,
+      requestData.limit,
+      requestData.offset,
+    );
+
+    return data;
+  },
+);
+
+export const loadFiatAccountCards = createAsyncThunk(
+  'finanse/fiatAccountCards',
+  async ({
+    wallet_uuid,
+    fiat_account_id,
+    limit,
+    offset,
+  }: LoadWithLimit<{ wallet_uuid: string; fiat_account_id: string }>) => {
+    const requestData = {
+      wallet_uuid,
+      fiat_account_id,
+      limit: limit || initialState.selectedFiatAccountCards.meta.limit,
+      offset: offset || initialState.selectedFiatAccountCards.meta.offset,
+    };
+
+    const { data } = await issuing.cards.getByFiatAccountAndWalletId(
+      requestData.wallet_uuid,
+      requestData.fiat_account_id,
+      requestData.limit,
+      requestData.offset,
+    );
+
+    return data;
+  },
+);
+
+export const loadMoreFiatAccountCards = createAsyncThunk(
+  'finanse/moreFiatAccountCards',
+  async (
+    props: RequiredLoadWithLimit<{ wallet_uuid: string; fiat_account_id: string }> & SupabasePaginationParams['meta'],
+  ) => {
+    const { wallet_uuid, fiat_account_id, limit, offset } = props;
+    const { data } = await issuing.cards.getByFiatAccountAndWalletId(wallet_uuid, fiat_account_id, limit, offset);
+
+    return data;
+  },
+);
 
 export const loadSelectedCard = createAsyncThunk('finanse/selectedCard', async (card_id: string) => {
   if (!card_id) {
@@ -156,20 +273,20 @@ export const loadMoreCardTransactions = createAsyncThunk(
   },
 );
 
-export const loadCards = createAsyncThunk(
-  'finanse/cards',
+export const loadWalletCards = createAsyncThunk(
+  'finanse/walletCards',
   async ({ wallet_uuid, limit, offset }: RequiredLoadWithLimit<{ wallet_uuid: string }>) => {
-    const { data } = await issuing.cards.getAll(wallet_uuid, limit, offset);
+    const { data } = await issuing.cards.getByWalletUuid(wallet_uuid, limit, offset);
 
     return data;
   },
 );
 
-export const loadMoreCards = createAsyncThunk(
-  'finanse/moreCards',
+export const loadMoreWalletCards = createAsyncThunk(
+  'finanse/moreWalletCards',
   async (props: RequiredLoadWithLimit<{ wallet_uuid: string }> & SupabasePaginationParams['meta']) => {
     const { wallet_uuid, limit, offset } = props;
-    const { data } = await issuing.cards.getAll(wallet_uuid, limit, offset);
+    const { data } = await issuing.cards.getByWalletUuid(wallet_uuid, limit, offset);
 
     return data;
   },
@@ -249,6 +366,37 @@ const financeSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    builder.addCase(loadFiatAccountCards.pending, (state, { meta }) => {
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].status = RequestStatus.PENDING;
+    });
+    builder.addCase(loadFiatAccountCards.fulfilled, (state, { meta, payload }) => {
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].status = RequestStatus.FULLFILLED;
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].data = payload.data;
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].meta.offset = payload.data.length;
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].meta.isLastPage =
+        payload.data.length < state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].meta.limit;
+    });
+    builder.addCase(loadFiatAccountCards.rejected, (state, { meta }) => {
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].status = RequestStatus.REJECTED;
+    });
+    builder.addCase(loadMoreFiatAccountCards.pending, (state, { meta }) => {
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].status = RequestStatus.PENDING;
+    });
+    builder.addCase(loadMoreFiatAccountCards.fulfilled, (state, { meta, payload }) => {
+      const existingData = state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].data;
+
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].status = RequestStatus.FULLFILLED;
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].data = existingData
+        ? [...existingData, ...payload.data]
+        : payload.data;
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].meta.offset += payload.data.length;
+      if (payload.data.length < state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].meta.limit) {
+        state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].meta.isLastPage = true;
+      }
+    });
+    builder.addCase(loadMoreFiatAccountCards.rejected, (state, { meta }) => {
+      state.selectedWalletFiatAccountsWithCards[meta.arg.fiat_account_id].status = RequestStatus.REJECTED;
+    });
     builder.addCase(hiddenLoadSelectedWallet.fulfilled, (state, action) => {
       state.selectedWallet.data = action.payload;
     });
@@ -261,6 +409,46 @@ const financeSlice = createSlice({
     });
     builder.addCase(loadSelectedWallet.rejected, (state) => {
       state.selectedWallet.status = RequestStatus.REJECTED;
+    });
+    builder.addCase(loadSelectedWalletFiatAccounts.pending, (state) => {
+      state.selectedWalletFiatAccounts.status = RequestStatus.PENDING;
+    });
+    builder.addCase(loadSelectedWalletFiatAccounts.fulfilled, (state, { payload }) => {
+      state.selectedWalletFiatAccounts.status = RequestStatus.FULLFILLED;
+      state.selectedWalletFiatAccounts.data = payload;
+      payload.forEach(({ id }) => {
+        state.selectedWalletFiatAccountsWithCards[id] = {
+          ...emptyStoreDataWithStatus,
+          meta: cardInitialPaginationParams,
+        };
+      });
+      state.selectedWalletFiatAccounts.meta.offset = payload.length;
+      state.selectedWalletFiatAccounts.meta.isLastPage = payload.length < state.selectedWalletFiatAccounts.meta.limit;
+    });
+    builder.addCase(loadSelectedWalletFiatAccounts.rejected, (state) => {
+      state.selectedWalletFiatAccounts.status = RequestStatus.REJECTED;
+    });
+    builder.addCase(loadMoreSelectedWalletFiatAccounts.pending, (state) => {
+      state.selectedWalletFiatAccounts.status = RequestStatus.PENDING;
+    });
+    builder.addCase(loadMoreSelectedWalletFiatAccounts.fulfilled, (state, { payload }) => {
+      state.selectedWalletFiatAccounts.status = RequestStatus.FULLFILLED;
+      state.selectedWalletFiatAccounts.data = state.selectedWalletFiatAccounts.data
+        ? [...state.selectedWalletFiatAccounts.data, ...payload]
+        : payload;
+      payload.forEach(({ id }) => {
+        state.selectedWalletFiatAccountsWithCards[id] = {
+          ...emptyStoreDataWithStatus,
+          meta: cardInitialPaginationParams,
+        };
+      });
+      state.selectedWalletFiatAccounts.meta.offset += payload.length;
+      if (payload.length < state.selectedWalletFiatAccounts.meta.limit) {
+        state.selectedWalletFiatAccounts.meta.isLastPage = true;
+      }
+    });
+    builder.addCase(loadMoreSelectedWalletFiatAccounts.rejected, (state) => {
+      state.selectedWalletFiatAccounts.status = RequestStatus.REJECTED;
     });
     builder.addCase(loadSelectedCard.pending, (state) => {
       state.selectedCard.status = RequestStatus.PENDING;
@@ -331,22 +519,22 @@ const financeSlice = createSlice({
     builder.addCase(loadMoreCardTransactions.rejected, (state) => {
       state.selectedCardTransactions.status = RequestStatus.REJECTED;
     });
-    builder.addCase(loadCards.pending, (state) => {
+    builder.addCase(loadWalletCards.pending, (state) => {
       state.selectedWalletCards.status = RequestStatus.PENDING;
     });
-    builder.addCase(loadCards.fulfilled, (state, action) => {
+    builder.addCase(loadWalletCards.fulfilled, (state, action) => {
       state.selectedWalletCards.status = RequestStatus.FULLFILLED;
       state.selectedWalletCards.data = action.payload.data;
       state.selectedWalletCards.meta.offset = action.payload.data.length;
       state.selectedWalletCards.meta.isLastPage = action.payload.data.length < state.selectedWalletCards.meta.limit;
     });
-    builder.addCase(loadCards.rejected, (state) => {
+    builder.addCase(loadWalletCards.rejected, (state) => {
       state.selectedWalletCards.status = RequestStatus.REJECTED;
     });
-    builder.addCase(loadMoreCards.pending, (state) => {
+    builder.addCase(loadMoreWalletCards.pending, (state) => {
       state.selectedWalletCards.status = RequestStatus.PENDING;
     });
-    builder.addCase(loadMoreCards.fulfilled, (state, action) => {
+    builder.addCase(loadMoreWalletCards.fulfilled, (state, action) => {
       state.selectedWalletCards.status = RequestStatus.FULLFILLED;
       state.selectedWalletCards.data = state.selectedWalletCards.data
         ? [...state.selectedWalletCards.data, ...action.payload.data]
@@ -356,7 +544,7 @@ const financeSlice = createSlice({
         state.selectedWalletCards.meta.isLastPage = true;
       }
     });
-    builder.addCase(loadMoreCards.rejected, (state) => {
+    builder.addCase(loadMoreWalletCards.rejected, (state) => {
       state.selectedWalletCards.status = RequestStatus.REJECTED;
     });
     builder.addCase(loadOnrampCalc.pending, (state) => {

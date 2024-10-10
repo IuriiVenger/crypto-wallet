@@ -358,6 +358,15 @@ export namespace API {
   }
 
   export namespace Wallets {
+    export interface FiatAccount {
+      id: string;
+      balance: number;
+      nick_name: string | null;
+      wallet_id: string;
+      created_at: string;
+      currency_id: string;
+      base_fiat_balance: number | null;
+    }
     export interface WallletBalanceCryptoDetails {
       uuid: string;
       crypto: {
@@ -409,6 +418,9 @@ export namespace API {
     }
 
     export interface ExtendWallet extends Wallet {
+      fiat_accounts: FiatAccount[];
+      fiat_total: number;
+      crypto_total: number;
       total_amount: number;
     }
 

@@ -27,7 +27,7 @@ type MainTabProps = {
   chainList: DashboardProps['chainList'];
   cards: DashboardProps['cards'];
   loadSelectedWalletCards: DashboardProps['loadSelectedWalletCards'];
-  loadMoreCards: DashboardProps['loadMoreCards'];
+  loadMoreWalletCards: DashboardProps['loadMoreWalletCards'];
   loadMoreWalletTransactions: DashboardProps['loadMoreWalletTransactions'];
   createCard: DashboardProps['createCard'];
   createCrypto2CryptoOrder: DashboardProps['createCrypto2CryptoOrder'];

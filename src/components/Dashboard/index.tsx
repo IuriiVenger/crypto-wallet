@@ -48,7 +48,7 @@ export interface DashboardProps {
   getSensitiveData: (card_id: string) => Promise<API.Cards.SensitiveData>;
   getWalletAddress: (chain: number, wallet_uuid: string) => Promise<API.Wallets.WalletChain.Response>;
   isTelegramEnviroment: boolean;
-  loadMoreCards: () => void;
+  loadMoreWalletCards: () => void;
   loadMoreCardTransactions: () => void;
   loadMoreWalletTransactions: () => void;
   loadSelectedWalletCards: () => void;

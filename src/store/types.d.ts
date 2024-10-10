@@ -27,6 +27,7 @@ export type StoreDataWithStatus<T> = {
 };
 
 export type StoreDataWithStatusAndMeta<T> = StoreDataWithStatus<T> & SupabasePaginationParams;
+export type StoreDataWithStatusAndMetaRecordsWithNames<T> = Record<string, StoreDataWithStatusAndMeta<T>>;
 
 export interface StoreOnrampCalcData extends API.Orders.OnRamp.Calc.Item {
   type: CalcType;

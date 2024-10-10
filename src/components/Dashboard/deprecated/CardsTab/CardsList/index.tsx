@@ -22,7 +22,8 @@ export type CardsListProps = CardsTabProps & {
 };
 
 const CardsList: FC<CardsListProps> = (props) => {
-  const { cards, onCardClick, loadSelectedWalletCards, loadMoreCards, openKYC, verificationStatus, fiatList } = props;
+  const { cards, onCardClick, loadSelectedWalletCards, loadMoreWalletCards, openKYC, verificationStatus, fiatList } =
+    props;
   const { data, status, meta } = cards;
   const [isCreateCardModalOpen, setIsCreateCardModalOpen] = useState(false);
 
@@ -97,7 +98,7 @@ const CardsList: FC<CardsListProps> = (props) => {
           variant="bordered"
           radius="sm"
           className="mt-4 w-full max-w-32 self-center "
-          onClick={loadMoreCards}
+          onClick={loadMoreWalletCards}
           isLoading={isRequestPending}
         >
           Load more
